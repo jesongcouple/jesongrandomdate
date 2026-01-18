@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<meta name="theme-color" content="#ff4d6d" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<!-- iOS 홈화면 아이콘은 manifest보다 apple-touch-icon을 우선하는 경우가 많음 -->
+<link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+<!-- 브라우저 탭 아이콘(설치형 아이콘과 별개) -->
+<link rel="icon" href="./icon-192.png" type="image/png" sizes="192x192" />
+<link rel="icon" href="./icon-512.png" type="image/png" sizes="512x512" />
+<title>제•송 랜덤데이트</title>
+<style>
+:root{--main:#ff4d6d;--bg:#fff0f3;--ink:#c9184a;--stageWpx:320px;--stageHpx:560px;--splashWpx:320px;--splashHpx:560px;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:-apple-system,system-ui,sans-serif;}
+body{margin:0;background:var(--bg);}
+.wrap{max-width:520px;margin:0 auto;padding:14px;}
+.card{background:#fff;border:6px solid #ffccd5;border-radius:28px;padding:14px;box-shadow:0 14px 30px rgba(255,77,109,.18);}
+.title{font-weight:900;color:var(--ink);font-size:20px;margin:0 0 14px;text-align:center;}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+input{flex:1;min-width:180px;padding:12px 14px;border-radius:18px;border:3px solid #ffccd5;font-size:16px;outline:none;text-align:center;}
+button{padding:12px 16px;border:0;border-radius:999px;background:linear-gradient(135deg,#ff4d6d,#ff85a2);color:#fff;font-weight:900;font-size:16px;box-shadow:0 10px 18px rgba(255,77,109,.25);cursor:pointer;}
+button:disabled{background:#ccc;box-shadow:none;cursor:default;}
+.stageWrap{margin-top:12px;width:var(--stageWpx);height:var(--stageHpx);margin-left:auto;margin-right:auto;background:#fff8f9;border:3px solid #ffb3c1;border-radius:22px;overflow:hidden;position:relative;}
+.viewport{width:100%;height:100%;overflow:auto;-webkit-overflow-scrolling:touch;background:#fff8f9;position:relative;touch-action:none;}
+.viewport{scrollbar-width:none;-ms-overflow-style:none;}
+.viewport::-webkit-scrollbar{width:0;height:0;display:none;}
+
+svg{display:block;}
+.lineStroke{stroke-width:22;stroke-linecap:round;stroke-linejoin:round;fill:none;opacity:.95;filter:drop-shadow(0 10px 14px rgba(0,0,0,.10));}
+.lineInner{stroke:#fff;stroke-width:7;stroke-linecap:round;stroke-linejoin:round;fill:none;opacity:.95;}
+.connector{stroke:#ffb3c1;stroke-width:5;stroke-linecap:round;opacity:.75;fill:none;}
+.label{font-size:12px;font-weight:900;fill:#c9184a;opacity:1;}
+.stationDot{fill:#fff;stroke:var(--main);stroke-width:4;opacity:1;}
+.token{filter:drop-shadow(0 10px 12px rgba(0,0,0,.16));}
+.token circle,.token rect{fill:var(--main);stroke:#fff;stroke-width:4;}
+#hudRect{fill:white;stroke:#ffccd5;stroke-width:4;opacity:.94;}
+#confetti{position:absolute;inset:0;pointer-events:none;z-index:20;}
+
+#resultOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999;}
+#resultBackdrop{position:absolute;inset:0;background:rgba(255,240,243,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+#resultBox{position:relative;width:min(360px,86vw);background:#fff;border-radius:24px;padding:22px 26px;text-align:center;border:4px solid #ffccd5;box-shadow:0 20px 40px rgba(255,77,109,.25);overflow:hidden;}
+#resultCanvas{position:absolute;inset:0;pointer-events:none;z-index:2;}
+#resultContent{position:relative;z-index:3;}
+#err{position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;display:none;background:rgba(0,0,0,.85);color:#fff;padding:12px 14px;border-radius:14px;font-weight:900;font-size:12px;line-height:1.35;}
+
+/* --- Splash (tap -> loading -> reveal) --- */
+#startOverlay{
+  position:fixed;
+  inset:0;
+  z-index:100000;
+  background:var(--bg);
+  opacity:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0; /* 중앙 폰 화면 최대 크기 */
+  touch-action:manipulation;
+  user-select:none;
+}
+#startOverlay.fadeOut{ opacity:0; transition:opacity .55s ease; }
+
+.splashStage{
+  width:var(--splashWpx);
+  height:var(--splashHpx);
+  border-radius:0;
+  overflow:hidden;
+  border:0;
+  background:var(--bg);
+  position:relative;
+}
+#splashImg{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center center;
+  display:block;
+}
+#tapHintWrap, #splashLoading{
+  position:absolute;
+  left:50%;
+  top:56%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  width:100%;
+  padding:0 14px;
+}
+#tapHint{
+  font-size:18px;
+  font-weight:1000;
+  letter-spacing:0.5px;
+  color:rgba(255,255,255,.96);
+  text-shadow:0 10px 22px rgba(0,0,0,.55);
+  animation:tapPulse 1.05s ease-in-out infinite;
+}
+@keyframes tapPulse{
+  0%{ transform:scale(.98); opacity:.55; }
+  45%{ transform:scale(1.04); opacity:1; }
+  100%{ transform:scale(.98); opacity:.55; }
+}
+#splashLoading{
+  font-size:20px;
+  font-weight:1000;
+  letter-spacing:1px;
+  color:rgba(255,255,255,.95);
+  text-shadow:0 10px 22px rgba(0,0,0,.55);
+  display:none;
+  line-height:1;
+}
+#splashLoading.show{ display:block; }
+#splashLoading .dots::after{ content:""; animation:dots 1.05s steps(4,end) infinite; }
+#splashLoading .blink{ animation:blink 0.55s steps(2,end) infinite; }
+@keyframes blink{ 0%,49%{opacity:1} 50%,100%{opacity:.25} }
+@keyframes dots{ 0%{content:""} 25%{content:"."} 50%{content:".."} 75%{content:"..."} 100%{content:""} }
+#startOverlay.loading #splashImg{ animation:loadingZoom 1.2s ease-in-out infinite; }
+@keyframes loadingZoom{ 0%{ transform:scale(1); filter:saturate(1.05); } 50%{ transform:scale(1.02); filter:saturate(1.15); } 100%{ transform:scale(1); filter:saturate(1.05); } }
+
+/* Force splash: no rounded corners / no frame */
+.splashStage{border-radius:0 !important;border:0 !important; box-shadow:none !important;}
+
+
+/* === SPLASH FORCE TALL (CSS OVERRIDE) === */
+#splashStage {
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- Splash -->
+<div id="startOverlay" aria-label="시작 화면" role="button" tabindex="0">
+  <div class="splashStage">
+    <img id="splashImg" src="./splash-bg.png" alt="제❤️송 랜덤데이트 시작 화면" />
+    <div id="tapHintWrap"><div id="tapHint">화면을 터치해주세요</div></div>
+    <div id="splashLoading" aria-live="polite"><span class="blink">로딩중</span><span class="dots"></span></div>
+  </div>
+</div>
+
+<!-- Game UI -->
+<div class="wrap">
+  <div class="card">
+    <h1 class="title">제•송 랜덤데이트</h1>
+    <div class="row">
+      <input id="startInput" inputmode="text" autocomplete="off" spellcheck="false" placeholder="출발역 (예: 혜화)" />
+      <button id="goBtn">출발!</button>
+    </div>
+
+    <div class="stageWrap">
+      <div class="viewport" id="viewport">
+        <svg id="map">
+          <g id="gLines"></g>
+          <g id="gDots"></g>
+
+          <!-- HUD -->
+          <g id="hudG">
+            <!-- HUD centered over token (token is at 0,0 in this group) -->
+            <rect id="hudRect" x="-120" y="-82" rx="16" ry="16" width="240" height="74"></rect>
+            <text id="hudLine1" x="0" y="-52" text-anchor="middle" dominant-baseline="middle" font-size="14" font-weight="900" fill="#c9184a">-</text>
+            <text id="hudLine2" x="0" y="-28" text-anchor="middle" dominant-baseline="middle" font-size="12" font-weight="900" fill="#ff4d6d">-</text>
+          </g>
+
+          <!-- Token -->
+          <g id="token" class="token">
+            
+                                    <!-- Token (refined): simple cute head + slightly refined body -->
+            <circle cx="0" cy="-14" r="9"></circle>
+            <!-- Body: less rounded, more natural -->
+            <rect x="-10" y="-2" width="20" height="24" rx="6" ry="6"></rect>
+          </g>
+        </svg>
+      </div>
+      <canvas id="confetti"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Result overlay -->
+<div id="resultOverlay">
+  <div id="resultBackdrop"></div>
+  <div id="resultBox">
+    <canvas id="resultCanvas"></canvas>
+    <div id="resultContent">
+      <div style="font-size:13px;font-weight:900;color:#777;">최종 도착</div>
+      <div id="resultStation" style="margin-top:6px;font-size:26px;font-weight:900;color:#c9184a;"></div>
+      <div id="resultCount" style="margin-top:10px;font-size:15px;font-weight:900;color:#ff4d6d;"></div>
+      <button id="searchBtn" style="margin-top:12px;padding:10px 16px;border-radius:999px;border:none;background:#fff0f3;color:#c9184a;font-weight:900;font-size:14px;cursor:pointer;border:2px solid #ffccd5;">데이트코스 알아보기🔍</button>
+      <button id="closeBtn" style="margin-top:14px;padding:10px 16px;border-radius:999px;border:none;background:linear-gradient(135deg,#ff4d6d,#ff85a2);color:white;font-weight:900;font-size:14px;cursor:pointer;">확인 ❤️</button>
+    </div>
+  </div>
+</div>
+
+<div id="err"></div>
+
+<script>
+function sleep(ms){ return new Promise(res=>setTimeout(res, ms)); }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function randInt(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+(function(){
+  const errEl=document.getElementById('err');
+  function showErr(msg){
+    errEl.textContent=msg;
+    errEl.style.display='block';
+    clearTimeout(showErr.__t);
+    showErr.__t=setTimeout(()=>{ errEl.style.display='none'; }, 3200);
+  }
+  window.addEventListener('error',(e)=>showErr('JS 에러: '+(e.message||'unknown')));
+  window.addEventListener('unhandledrejection',(e)=>showErr('Promise 에러: '+(e.reason?.message||e.reason||'unknown')));  // Responsive stage sizing (game + splash)
+  function setStageSize(){
+    const vv=window.visualViewport;
+    const vw=(vv&&vv.width)||window.innerWidth;
+    const vh=(vv&&vv.height)||window.innerHeight;
+
+    const card=document.querySelector('.card');
+    const title=document.querySelector('.title');
+    const row=document.querySelector('.row');
+
+    const wrapPad = 28; // .wrap padding (14*2)
+    const maxW = Math.min(520, (card ? (card.clientWidth - 28) : (vw - wrapPad)));
+
+    const titleH = title ? title.getBoundingClientRect().height : 0;
+    const rowH   = row   ? row.getBoundingClientRect().height   : 0;
+    const chrome = 34;
+
+    const availableH = vh - (titleH + rowH) - chrome - 18;
+    const maxH = Math.min(980, Math.max(480, availableH));
+
+    // Game: keep as-is (no scroll on web)
+    const HEIGHT_FACTOR = 0.92;
+    const w = Math.max(300, Math.min(maxW, maxW));
+    const h = Math.max(420, Math.min(maxH, maxH * HEIGHT_FACTOR));    // Splash: 시작화면은 스플래시 이미지 비율(9:16)을 유지하면서,
+    // 웹에서 '폰 화면 1대'가 중앙에 크게 보이도록(스크롤 없이) 가능한 한 크게 맞춘다.
+    // ※ 게임 비율을 따라가면 시작화면이 옆으로 넓어져서(=가로 과확대) 여기서는 이미지 비율을 고정한다.
+    const splashRatio = (16/9) / 1.20; // height/width (wider by ~20%)
+    const maxSplashW = vw;
+    const maxSplashH = vh;
+
+    // 1) 세로를 최대치로 채우고, 가로를 비율로 계산
+    let splashH = maxSplashH;
+    let splashW = splashH / splashRatio;
+
+    // 2) 가로가 넘치면 가로 기준으로 재계산
+    if (splashW > maxSplashW){
+      splashW = maxSplashW;
+      splashH = splashW * splashRatio;
+    }
+
+    // 3) 가로를 더 넓게 (가능한 범위 내에서)
+    const SPLASH_W_SCALE = 9.0; // 가로 확장: 크게 잡아 vw 한계까지 꽉 채움
+    splashW = Math.min(maxSplashW, splashW * SPLASH_W_SCALE);
+    splashH = splashW * splashRatio;
+    // 세로가 넘치면 세로를 우선으로 다시 맞춤
+    if (splashH > maxSplashH){
+      splashH = maxSplashH;
+      splashW = splashH / splashRatio;
+    }
+
+    const root=document.documentElement;
+    root.style.setProperty('--stageWpx', w.toFixed(2)+'px');
+    root.style.setProperty('--stageHpx', h.toFixed(2)+'px');
+    root.style.setProperty('--splashWpx', splashW.toFixed(2)+'px');
+    root.style.setProperty('--splashHpx', splashH.toFixed(2)+'px');
+  }
+
+  function min(a,b,c){ return Math.min(a,b,c); }
+
+  window.addEventListener('resize', setStageSize, {passive:true});
+  window.addEventListener('orientationchange', setStageSize, {passive:true});
+  if(window.visualViewport) window.visualViewport.addEventListener('resize', setStageSize, {passive:true});
+  setStageSize();
+
+  // Splash: tap -> loading -> reveal
+  const splash=document.getElementById('startOverlay');
+  const hintWrap=document.getElementById('tapHintWrap');
+  const loadingWrap=document.getElementById('splashLoading');
+  let splashStarted=false;
+
+  function removeSplash(){
+    if(!splash) return;
+    splash.classList.add('fadeOut');
+    setTimeout(()=>{ try{ splash.remove(); } catch(e){ splash.style.display='none'; } }, 600);
+  }
+
+  function beginSplashLoading(){
+    if(!splash || splashStarted) return;
+    splashStarted=true;
+    splash.classList.add('loading');
+    if(hintWrap) hintWrap.style.display='none';
+    if(loadingWrap) loadingWrap.classList.add('show');
+
+    // Give some action: subtle tick every 240ms
+    let ticks=0;
+    const iv=setInterval(()=>{ ticks++; if(ticks>12) clearInterval(iv); else { try{ playTick(); }catch(e){} } }, 240);
+
+    setTimeout(()=>{ try{ clearInterval(iv); }catch(e){} removeSplash(); }, 3000);
+  }
+
+  if(splash){
+    splash.addEventListener('click', beginSplashLoading, {passive:true});
+    splash.addEventListener('touchend', beginSplashLoading, {passive:true});
+    splash.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') beginSplashLoading(); });
+  }
+
+
+  const DATA = {"1호선":["연천","전곡","청산","소요산","동두천","지행","덕정","덕계","양주","녹양","가능","의정부","회룡","망월사","도봉산","도봉","방학","창동","녹천","월계","광운대","석계","신이문","외대앞","회기","청량리","제기동","신설동","동묘앞","동대문","종로5가","종로3가","종각","시청","서울역","남영","용산","노량진","대방","신길","영등포","신도림","구로","구일","개봉","오류동","온수","역곡","소사","부천","중동","상동","송내","부개","부평","백운","동암","간석","주안","도화","제물포","도원","동인천","인천","가산디지털단지","독산","금천구청","석수","관악","안양","명학","금정","산본","수리산","대야미","반월","상록수","한대앞","중앙","고잔","초지","안산","신길온천","정왕","오이도","의왕","성균관대","화서","수원","세류","병점","세마","오산대","오산","진위","송탄","서정리","평택지제","평택","성환","직산","두정","천안","봉명","쌍용","아산","탕정","배방","온양온천","신창"],"2호선":["시청","을지로입구","을지로3가","을지로4가","동대문역사문화공원","신당","상왕십리","왕십리","한양대","뚝섬","성수","건대입구","구의","강변","잠실나루","잠실","잠실새내","종합운동장","삼성","선릉","역삼","강남","교대","서초","방배","사당","낙성대","서울대입구","봉천","신림","신대방","구로디지털단지","대림","신도림","문래","영등포구청","당산","합정","홍대입구","신촌","이대","아현","충정로","용답","신답","용두","신설동","도림천","양천구청","신정네거리","까치산"],"3호선":["대화","주엽","정발산","마두","백석","대곡","화정","원당","원흥","삼송","지축","구파발","연신내","불광","녹번","홍제","무악재","독립문","경복궁","안국","종로3가","을지로3가","충무로","동대입구","약수","금호","옥수","압구정","신사","잠원","고속터미널","교대","남부터미널","양재","매봉","도곡","대치","학여울","대청","일원","수서","가락시장","경찰병원","오금"],"4호선":["진접","오남","별내별가람","당고개","상계","노원","창동","쌍문","수유","미아","미아사거리","길음","성신여대입구","한성대입구","혜화","동대문","동대문역사문화공원","충무로","명동","회현","서울역","숙대입구","삼각지","신용산","이촌","동작","총신대입구","사당","남태령","선바위","경마공원","대공원","과천","정부과천청사","인덕원","평촌","범계","금정","산본","수리산","대야미","반월","상록수","한대앞","중앙","고잔","초지","안산","신길온천","정왕","오이도"],"5호선":["방화","개화산","김포공항","송정","마곡","발산","우장산","화곡","까치산","신정","목동","오목교","양평","영등포구청","영등포시장","신길","여의도","여의나루","마포","공덕","애오개","충정로","서대문","광화문","종로3가","을지로4가","동대문역사문화공원","청구","신금호","행당","왕십리","마장","답십리","장한평","군자","아차산","광나루","천호","강동","길동","굽은다리","명일","고덕","상일동","강일","미사","하남풍산","하남시청","하남검단산","둔촌동","올림픽공원","방이","오금","개롱","거여","마천"],"6호선":["응암","역촌","독바위","연신내","구산","새절","증산","디지털미디어시티","월드컵경기장","마포구청","망원","합정","상수","광흥창","대흥","공덕","효창공원앞","삼각지","녹사평","이태원","한강진","버티고개","약수","청구","신당","동묘앞","창신","보문","안암","고려대","월곡","상월곡","돌곶이","석계","태릉입구","화랑대","봉화산","신내"],"7호선":["장암","도봉산","수락산","마들","노원","중계","하계","공릉","태릉입구","먹골","중화","상봉","면목","사가정","용마산","중곡","군자","어린이대공원","건대입구","뚝섬유원지","청담","강남구청","학동","논현","반포","고속터미널","내방","이수","남성","숭실대입구","상도","장승배기","신대방삼거리","보라매","신풍","대림","남구로","가산디지털단지","철산","광명사거리","천왕","온수","까치울","부천종합운동장","춘의","신중동","부천시청","상동","삼산체육관","굴포천","부평구청","상갈","산곡","석남"],"8호선":["별내","다산","동구릉","구리","장자호수공원","암사역사공원","암사","천호","강동구청","몽촌토성","잠실","석촌","송파","가락시장","문정","장지","복정","남위례","산성","남한산성입구","단대오거리","신흥","신촌","수진","모란"],"9호선":["개화","김포공항","공항시장","신방화","마곡나루","양천향교","가양","증미","등촌","염창","신목동","선유도","당산","국회의사당","여의도","샛강","노량진","노들","흑석","동작","구반포","신반포","고속터미널","사평","신논현","언주","선정릉","삼성중앙","봉은사","종합운동장","삼전","석촌고분","석촌","송파나루","한성백제","올림픽공원","둔촌오륜","중앙보훈병원"],"경의중앙선":["문산","파주","월롱","금촌","금릉","운정","야당","탄현","일산","풍산","백마","곡산","대곡","능곡","행신","강매","화전","수색","디지털미디어시티","가좌","홍대입구","서강대","공덕","효창공원앞","용산","이촌","서빙고","한남","옥수","응봉","왕십리","청량리","회기","중랑","상봉","망우","양원","구리","도농","양정","덕소","도심","팔당","운길산","양수","신원","국수","아신","오빈","양평","원덕","용문","지평"],"신분당선":["신사","논현","신논현","강남","양재","양재시민의숲","청계산입구","판교","정자","미금","동천","수지구청","성복","상현","광교중앙","광교"],"수인분당선":["청량리","회기","중랑","상봉","망우","구리","도농","양정","덕소","왕십리","서울숲","압구정로데오","강남구청","선정릉","선릉","한티","도곡","구룡","개포동","대모산입구","수서","복정","가천대","태평","모란","야탑","이매","서현","수내","정자","미금","오리","죽전","보정","구성","신갈","기흥","상갈","청명","영통","망포","매탄권선","수원시청","매교","수원","고색","오목천","어천","야목","사리","한대앞","중앙","고잔","초지","안산","신길온천","정왕","오이도","달월","월곶","소래포구","인천논현","호구포","남동인더스파크","원인재","연수","송도","학익","인하대","숭의","신포","인천"]};
+
+  // Audio: NO BGM, only SFX
+  let audioCtx=null, sfxGain=null;
+  function ensureAudio(){
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if(!sfxGain){ sfxGain = audioCtx.createGain(); sfxGain.gain.value=0.18; sfxGain.connect(audioCtx.destination); }
+  }
+  function startBGM(){ ensureAudio(); }
+  function playTick(){
+    ensureAudio();
+    const now=audioCtx.currentTime;
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    const f=audioCtx.createBiquadFilter();
+    o.type='square'; o.frequency.value=1500;
+    f.type='bandpass'; f.frequency.value=1100; f.Q.value=9;
+    g.gain.value=0.0001;
+    o.connect(f).connect(g).connect(sfxGain);
+    o.start(now);
+    g.gain.linearRampToValueAtTime(0.18, now+0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, now+0.06);
+    o.stop(now+0.07);
+    const o2=audioCtx.createOscillator();
+    const g2=audioCtx.createGain();
+    o2.type='sine'; o2.frequency.value=420;
+    g2.gain.value=0.0001;
+    o2.connect(g2).connect(sfxGain);
+    o2.start(now+0.018);
+    g2.gain.linearRampToValueAtTime(0.07, now+0.03);
+    g2.gain.exponentialRampToValueAtTime(0.0001, now+0.16);
+    o2.stop(now+0.17);
+  }
+  function playDing(){
+    ensureAudio();
+    const now=audioCtx.currentTime;
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    o.type='sine'; o.frequency.value=880;
+    g.gain.value=0.0001;
+    o.connect(g).connect(sfxGain);
+    o.start(now);
+    g.gain.linearRampToValueAtTime(0.14, now+0.02);
+    o.frequency.linearRampToValueAtTime(1175, now+0.14);
+    g.gain.exponentialRampToValueAtTime(0.0001, now+0.42);
+    o.stop(now+0.43);
+  }
+  function playFanfare(){
+    ensureAudio();
+    const now=audioCtx.currentTime;
+    const g=audioCtx.createGain();
+    g.gain.value=0.0001;
+    g.connect(sfxGain);
+    const o1=audioCtx.createOscillator();
+    const o2=audioCtx.createOscillator();
+    o1.type='square'; o2.type='square';
+    o1.connect(g); o2.connect(g);
+    const seq=[523.25,659.25,783.99,1046.5];
+    const dur=0.10;
+    o1.start(now); o2.start(now);
+    seq.forEach((f,i)=>{ o1.frequency.setValueAtTime(f, now+i*dur); o2.frequency.setValueAtTime(f*0.5, now+i*dur); });
+    g.gain.linearRampToValueAtTime(0.18, now+0.02);
+    g.gain.linearRampToValueAtTime(0.12, now+0.18);
+    g.gain.exponentialRampToValueAtTime(0.0001, now+seq.length*dur+0.12);
+    o1.stop(now+seq.length*dur+0.15);
+    o2.stop(now+seq.length*dur+0.15);
+  }
+
+  function formatStation(s){ s=String(s).trim().replace(/역$/,''); return s+'역'; }
+  function normalizeName(s){ return String(s).trim().replace(/역$/,'').replace(/\s+/g,''); }
+
+  // Build line data (line-aware)
+  function cleanLine(arr){
+    const out=[];
+    for(let i=0;i<arr.length;i++){
+      const s=String(arr[i]).trim();
+      if(!s) continue;
+      if(out.length && out[out.length-1]===s) continue;
+      out.push(s);
+    }
+    return out;
+  }
+  const subwayData={};
+  const lineNames=Object.keys(DATA);
+  for(const line of lineNames) subwayData[line]=cleanLine(DATA[line]);
+
+  const lineIndex={};
+  for(const line of lineNames){
+    lineIndex[line]={};
+    const arr=subwayData[line];
+    for(let i=0;i<arr.length;i++) lineIndex[line][arr[i]]=i;
+  }
+  const stationLines=new Map();
+  for(const line of lineNames){
+    for(const st of subwayData[line]){
+      if(!stationLines.has(st)) stationLines.set(st,new Set());
+      stationLines.get(st).add(line);
+    }
+  }
+  const getLinesOf=(st)=>stationLines.get(st)?Array.from(stationLines.get(st)):[];
+
+  const getNextOnLine=(line,st,dir)=>{
+    const idx=lineIndex[line][st];
+    if(idx===undefined) return null;
+    const arr=subwayData[line];
+    const ni=idx+dir;
+    if(ni<0||ni>=arr.length) return null;
+    return arr[ni];
+  };
+
+  const allStations=Array.from(stationLines.keys());
+
+  // Layout (no x-averaging)
+  const yStep=90, xStep=22, marginX=90, marginY=90;
+  const pos=new Map();
+  for(let li=0; li<lineNames.length; li++){
+    const line=lineNames[li];
+    const y=marginY + li*yStep;
+    const arr=subwayData[line];
+    for(let i=0;i<arr.length;i++){
+      const st=arr[i];
+      const x=marginX + i*xStep;
+      pos.set(line+'::'+st, {x:x,y:y});
+    }
+  }
+
+  // Draw SVG
+  const viewport=document.getElementById('viewport');
+  const map=document.getElementById('map');
+  const gLines=document.getElementById('gLines');
+  const gDots=document.getElementById('gDots');
+  const token=document.getElementById('token');
+  const hudG=document.getElementById('hudG');
+  const hudLine1=document.getElementById('hudLine1');
+  const hudLine2=document.getElementById('hudLine2');
+
+  const LINE_COLORS={"1호선":"#1e88e5","2호선":"#2e7d32","3호선":"#f9a825","4호선":"#039be5","5호선":"#8e24aa","6호선":"#6d4c41","7호선":"#7b1fa2","8호선":"#d81b60","9호선":"#b59a00","경의중앙선":"#00838f","신분당선":"#c62828","수인분당선":"#f06292"};
+  const lineColor=(n)=>LINE_COLORS[n]||"#ff4d6d";
+  function svgEl(tag, attrs){
+    const el=document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for(const k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  let maxLen=0;
+  for(const line of lineNames) maxLen=Math.max(maxLen, subwayData[line].length);
+  const W=Math.max(1800, marginX + maxLen*xStep + 140);
+  const H=Math.max(1100, marginY + lineNames.length*yStep + 140);
+  map.setAttribute('width', String(W));
+  map.setAttribute('height', String(H));
+  map.setAttribute('viewBox', '0 0 '+W+' '+H);
+
+  for(let li=0; li<lineNames.length; li++){
+    const line=lineNames[li];
+    const arr=subwayData[line];
+    let d='';
+    for(let i=0;i<arr.length;i++){
+      const p=pos.get(line+'::'+arr[i]);
+      d += (i===0 ? ('M '+p.x+' '+p.y) : (' L '+p.x+' '+p.y));
+    }
+    gLines.appendChild(svgEl('path', {d:d, class:'lineStroke', stroke: lineColor(line)}));
+    gLines.appendChild(svgEl('path', {d:d, class:'lineInner'}));
+    const label=svgEl('text', {x:'16', y:String(marginY + li*yStep + 5), class:'label'});
+    label.textContent=line;
+    gLines.appendChild(label);
+  }
+
+  stationLines.forEach((set, st)=>{
+    const lines=Array.from(set);
+    if(lines.length<2) return;
+    const pts=[];
+    for(const l of lines){ const p=pos.get(l+'::'+st); if(p) pts.push(p); }
+    pts.sort((a,b)=>a.y-b.y);
+    if(pts.length<2) return;
+    let d='M '+pts[0].x+' '+pts[0].y;
+    for(let i=1;i<pts.length;i++) d += ' L '+pts[i].x+' '+pts[i].y;
+    gLines.appendChild(svgEl('path', {d:d, class:'connector'}));
+  });
+
+  stationLines.forEach((set, st)=>{
+    if(set.size<2) return;
+    for(const line of set){
+      const p=pos.get(line+'::'+st);
+      if(!p) continue;
+      gDots.appendChild(svgEl('circle', {cx:String(p.x), cy:String(p.y), r:'4', class:'stationDot'}));
+    }
+  });
+
+  // Drag-to-pan
+  (function enableDragPan(){
+    let isDown=false, startX=0, startY=0, sl=0, st=0;
+    viewport.addEventListener('pointerdown',(e)=>{
+      isDown=true; viewport.setPointerCapture(e.pointerId);
+      startX=e.clientX; startY=e.clientY;
+      sl=viewport.scrollLeft; st=viewport.scrollTop;
+    });
+    viewport.addEventListener('pointermove',(e)=>{
+      if(!isDown) return;
+      viewport.scrollLeft = sl - (e.clientX - startX);
+      viewport.scrollTop  = st - (e.clientY - startY);
+    });
+    viewport.addEventListener('pointerup',()=>{ isDown=false; });
+    viewport.addEventListener('pointercancel',()=>{ isDown=false; });
+  })();
+
+  // Confetti
+  const confCanvas=document.getElementById('confetti');
+  const confCtx=confCanvas.getContext('2d');
+  function resizeCanvasTo(el, canvas, ctx){
+    const r=el.getBoundingClientRect();
+    const dpr=window.devicePixelRatio||1;
+    canvas.width=Math.floor(r.width*dpr);
+    canvas.height=Math.floor(r.height*dpr);
+    canvas.style.width=r.width+'px';
+    canvas.style.height=r.height+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    return {w:r.width,h:r.height};
+  }
+  function burstConfettiOn(canvas, ctx, w, h){
+    if(canvas.__raf) cancelAnimationFrame(canvas.__raf);
+    const colors=["#ff4d6d","#ff85a2","#ffd6e0","#c9184a","#ffb3c1","#ffe3ea"];
+    const pieces=[];
+    const count=190;
+    for(let i=0;i<count;i++) pieces.push({x:w*0.5,y:h*0.32,vx:(Math.random()-0.5)*9,vy:-Math.random()*11-7,g:0.22+Math.random()*0.18,w:4+Math.random()*5,h:3+Math.random()*5,a:Math.random()*Math.PI,va:(Math.random()-0.5)*0.25,c:colors[Math.floor(Math.random()*colors.length)],life:0,max:170+Math.random()*70});
+    function tick(){
+      ctx.clearRect(0,0,w,h);
+      let alive=0;
+      for(const p of pieces){
+        p.life++; if(p.life<p.max) alive++;
+        p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.a+=p.va;
+        ctx.save();
+        ctx.translate(p.x,p.y);
+        ctx.rotate(p.a);
+        ctx.globalAlpha=Math.max(0,1-p.life/p.max);
+        ctx.fillStyle=p.c;
+        ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+        ctx.restore();
+      }
+      ctx.globalAlpha=1;
+      if(alive>0) canvas.__raf=requestAnimationFrame(tick);
+      else ctx.clearRect(0,0,w,h);
+    }
+    tick();
+  }
+  resizeCanvasTo(viewport, confCanvas, confCtx);
+  window.addEventListener('resize', ()=>{ resizeCanvasTo(viewport, confCanvas, confCtx); });
+
+  // Movement helpers
+  function setTokenXY(x,y, smooth){
+    token.setAttribute('transform','translate('+x+','+y+')');
+    hudG.setAttribute('transform','translate('+x+','+(y-26)+')');
+    if(smooth){
+      viewport.scrollTo({left:Math.max(0,x-viewport.clientWidth/2), top:Math.max(0,y-viewport.clientHeight/2), behavior:'smooth'});
+    }
+  }
+  function setTokenAt(line, st, smooth){
+    const p=pos.get(line+'::'+st);
+    if(!p) return;
+    setTokenXY(p.x,p.y,smooth);
+  }
+  function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.sqrt(dx*dx+dy*dy); }
+  function moveSegment(lineA, stA, lineB, stB){
+    const a=pos.get(lineA+'::'+stA);
+    const b=pos.get(lineB+'::'+stB);
+    if(!a||!b) return Promise.resolve();
+    const d=dist(a,b);
+    const duration=Math.max(240, Math.min(650, d*6.5));
+    const start=performance.now();
+    return new Promise(res=>{
+      function tick(t){
+        const p=Math.min(1,(t-start)/duration);
+        const e=p<0.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+        setTokenXY(a.x+(b.x-a.x)*e, a.y+(b.y-a.y)*e, true);
+        if(p<1) requestAnimationFrame(tick); else res();
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+
+  // Path generator: transfer only at interchange, stop at terminal, no reverse
+  const MAX_STOPS=25;
+  function randomWalkPath(startLine, startStation){
+    let curLine = startLine;
+
+    const idx = lineIndex[curLine][startStation];
+    const arr = subwayData[curLine];
+
+    // 종점에서 출발하면 무조건 종점 반대 방향으로 출발
+    let dir;
+    if (idx === 0) dir = 1;
+    else if (idx === arr.length - 1) dir = -1;
+    else dir = Math.random() < 0.5 ? -1 : 1;
+
+    const stepsPlanned = randInt(1, MAX_STOPS);
+    const path = [{ line: curLine, st: startStation }];
+    let curSt = startStation;
+
+    for (let step = 1; step <= stepsPlanned; step++) {
+      const linesAtCur = getLinesOf(curSt);
+      if (linesAtCur.length >= 2) {
+        const remain = stepsPlanned - step + 1;
+        const nearEnd = remain <= 6;
+        const pTransfer = nearEnd ? 0.55 : 0.22;
+        if (Math.random() < pTransfer) {
+          const choices = linesAtCur.filter(l => l !== curLine);
+          if (choices.length) {
+            curLine = pick(choices);
+
+            // 환승 후에도 종점이면 방향 다시 보정
+            const newIdx = lineIndex[curLine][curSt];
+            const newArr = subwayData[curLine];
+            if (newIdx === 0) dir = 1;
+            else if (newIdx === newArr.length - 1) dir = -1;
+          }
+        }
+      }
+
+      const nextSt = getNextOnLine(curLine, curSt, dir);
+      if (!nextSt) break;
+
+      curSt = nextSt;
+      path.push({ line: curLine, st: curSt });
+    }
+
+    return path;
+  }
+
+  // Result overlay
+  const overlay=document.getElementById('resultOverlay');
+  const resultStation=document.getElementById('resultStation');
+  const resultCount=document.getElementById('resultCount');
+  const resultBox=document.getElementById('resultBox');
+  const resultCanvas=document.getElementById('resultCanvas');
+  const resultCtx=resultCanvas.getContext('2d');
+
+  document.getElementById('closeBtn').addEventListener('click', ()=>{ overlay.style.display='none'; });
+  document.getElementById('searchBtn').addEventListener('click', ()=>{
+    const station = (resultStation.textContent || '').trim(); // includes '역'
+    const query = encodeURIComponent(station + " 데이트코스");
+    window.open("https://search.naver.com/search.naver?query=" + query, "_blank");
+  });
+
+  function showResultOverlay(stationName,totalMoved){
+    resultStation.textContent = formatStation(stationName);
+    resultCount.textContent = '총 ' + totalMoved + '정거장 이동';
+    overlay.style.display='flex';
+    const dims = resizeCanvasTo(resultBox, resultCanvas, resultCtx);
+    burstConfettiOn(resultCanvas, resultCtx, dims.w, dims.h);
+    playFanfare();
+  }
+
+  // Init
+  const startInput=document.getElementById('startInput');
+  const goBtn=document.getElementById('goBtn');
+
+  let currentStation = allStations.includes('화정') ? '화정' : (allStations[0] || '시청');
+  let currentLine = getLinesOf(currentStation)[0] || lineNames[0];
+  startInput.value=currentStation;
+  setTokenAt(currentLine,currentStation,true);
+  hudLine1.textContent=formatStation(currentStation);
+  hudLine2.textContent='이동: 0정거장';
+  let animating=false;
+
+  function findStartStation(input){
+    const q=normalizeName(input);
+    for(const s of allStations) if(normalizeName(s)===q) return s;
+    return null;
+  }
+
+  async function animatePath(path){
+    let moved=0;
+    for(let i=0;i<path.length;i++){
+      const cur=path[i];
+      hudLine1.textContent=formatStation(cur.st);
+      hudLine2.textContent='이동: '+moved+'정거장';
+      if(i===0){ setTokenAt(cur.line,cur.st,true); await sleep(280); continue; }
+      const prev=path[i-1];
+      await moveSegment(prev.line,prev.st,cur.line,cur.st);
+      moved++;
+      hudLine2.textContent='이동: '+moved+'정거장';
+      playTick();
+      await sleep(160);
+      const remain=(path.length-1)-i;
+      const t=Math.max(0,6-remain);
+      const jitter=Math.floor(Math.random()*180);
+      const curve=t===0 ? 1 : (1 + 0.14*t*t);
+      let ms=(380 + jitter)*curve;
+      if(remain<=2) ms += 260;
+      await sleep(ms);
+    }
+    return moved;
+  }
+
+  async function finale(targetStation,totalMoved){
+    playDing();
+    const dims = resizeCanvasTo(viewport, confCanvas, confCtx);
+    burstConfettiOn(confCanvas, confCtx, dims.w, dims.h);
+    showResultOverlay(targetStation,totalMoved);
+  }
+
+  async function onStart(){
+    if(animating) return;
+    const startStation=findStartStation(startInput.value);
+    if(!startStation){ showErr('출발역 오타! 예: 혜화, 동대문, 화정, 강남'); return; }
+    animating=true; goBtn.disabled=true;
+    startBGM();
+    overlay.style.display='none';
+    currentStation=startStation;
+    currentLine=getLinesOf(currentStation)[0] || lineNames[0];
+    const path=randomWalkPath(currentLine,currentStation);
+    const last=path[path.length-1];
+    const moved=await animatePath(path);
+    await finale(last.st,moved);
+    currentStation=last.st;
+    currentLine=last.line;
+    animating=false; goBtn.disabled=false;
+  }
+
+  goBtn.addEventListener('click', onStart);
+  goBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); onStart(); }, {passive:false});
+})();
+
+// === FORCE TALLER SPLASH (VERTICAL PRIORITY) ===
+if (typeof splashStage !== 'undefined') {
+  const vh = window.innerHeight || document.documentElement.clientHeight;
+  splashStage.style.height = Math.floor(vh * 0.96) + 'px';
+}
+
+</script>
+</body>
+</html>
