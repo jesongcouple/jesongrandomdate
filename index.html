@@ -1469,7 +1469,7 @@ let currentLine = getLinesOf(currentStation)[0] || lineNames[0];
       }
       if(!transferGain){
         transferGain = audioCtx.createGain();
-        transferGain.gain.value = 0.006;
+        transferGain.gain.value = 0.01;
         try{
           // mediaElementSource can only be created once per element
           transferSource = audioCtx.createMediaElementSource(sfxTransfer);
@@ -1479,7 +1479,7 @@ let currentLine = getLinesOf(currentStation)[0] || lineNames[0];
           try{ sfxTransfer.volume = 1; }catch(e){}
         }catch(e){}
       }
-      if(transferGain) transferGain.gain.value = 0.006;
+      if(transferGain) transferGain.gain.value = 0.01;
     }catch(e){}
 
     if(isTransferring) return;
