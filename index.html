@@ -299,6 +299,15 @@ svg{display:block;}
 }
 
 
+.miniBtn:active{
+  transform: translateY(1px) scale(.98) !important;
+  box-shadow:
+    0 6px 10px rgba(201,24,74,.20),
+    inset 0 1px 0 rgba(255,255,255,.25),
+    inset 0 -1px 0 rgba(0,0,0,.12) !important;
+}
+
+
 /* === Settings button: deep pink 3D === */
 .miniBtn{
   background: linear-gradient(180deg,#ff85a2 0%, #ff4d6d 100%) !important;
@@ -315,6 +324,27 @@ svg{display:block;}
     0 6px 10px rgba(201,24,74,.20),
     inset 0 1px 0 rgba(255,255,255,.25),
     inset 0 -1px 0 rgba(0,0,0,.12) !important;
+}
+
+
+/* === Settings button align with frame === */
+.miniBtn{
+  right: 22px !important;
+  bottom: 22px !important;
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 16px !important;
+  border: 3px solid #ffccd5 !important;
+  box-shadow:
+    0 10px 16px rgba(201,24,74,.20),
+    inset 0 2px 0 rgba(255,255,255,.30),
+    inset 0 -2px 0 rgba(0,0,0,.10) !important;
+}
+@media (max-width: 700px){
+  .miniBtn{
+    right: calc(18px + env(safe-area-inset-right)) !important;
+    bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+  }
 }
 
 </style>
@@ -337,7 +367,7 @@ svg{display:block;}
     <h1 class="title">제•송 랜덤데이트</h1>
     <div class="row">
       <input id="startInput" inputmode="text" autocomplete="off" spellcheck="false" placeholder="출발역 (예: 혜화)" />
-      <button id="goBtn">출발!</button>
+      <button id="goBtn">출발</button>
     </div>
 
     <div class="stageWrap">
