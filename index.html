@@ -70,13 +70,7 @@ svg{display:block;}
   background:var(--bg);
   position:relative;
 }
-#splashImg{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  object-position:center center;
-  display:block;
-}
+#splashImg{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
 #tapHintWrap, #splashLoading{
   position:absolute;
   left:50%;
@@ -113,7 +107,7 @@ svg{display:block;}
 #splashLoading .blink{ animation:blink 0.55s steps(2,end) infinite; }
 @keyframes blink{ 0%,49%{opacity:1} 50%,100%{opacity:.25} }
 @keyframes dots{ 0%{content:""} 25%{content:"."} 50%{content:".."} 75%{content:"..."} 100%{content:""} }
-#startOverlay.loading #splashImg{ animation:loadingZoom 1.2s ease-in-out infinite; }
+#startOverlay.loading #splashImg{width:100%;height:100%;object-fit:cover;object-position:center;display:block;}
 @keyframes loadingZoom{ 0%{ transform:scale(1); filter:saturate(1.05); } 50%{ transform:scale(1.02); filter:saturate(1.15); } 100%{ transform:scale(1); filter:saturate(1.05); } }
 
 /* --- Mini settings button & modal --- */
@@ -259,6 +253,50 @@ svg{display:block;}
   font-size:14px;
   cursor:pointer;
   box-shadow:0 10px 18px rgba(255,77,109,.22);
+}
+
+
+/* === Visual viewport height var (mobile Safari fix) === */
+:root{ --vvh: 1vh; }
+#startOverlay{ height: calc(var(--vvh) * 100); }
+#splashStage{ height: calc(var(--vvh) * 100); width: 100%; }
+
+
+/* === Settings UI tone override (softer) === */
+.miniBtn{
+  width:40px !important;
+  height:40px !important;
+  border-radius:12px !important;
+  border:2px solid #ffd6df !important;
+  background: rgba(255,240,243,.92) !important;
+  color:#c9184a !important;
+  box-shadow:0 6px 12px rgba(201,24,74,.12) !important;
+  font-weight:900 !important;
+}
+.miniBtn:hover{ filter:none !important; }
+.stepBtn{
+  border:2px solid #ffd6df !important;
+  background: linear-gradient(135deg,#ff8fa3,#ffb3c1) !important;
+  box-shadow:0 6px 12px rgba(201,24,74,.10) !important;
+}
+#settingsBox{
+  border:3px solid #ffd6df !important;
+}
+
+
+/* === Settings button 3D polish === */
+.miniBtn{
+  background: linear-gradient(180deg,#ffffff 0%, #ffe3ea 100%) !important;
+  border:2px solid #ffb3c1 !important;
+  box-shadow:
+    0 8px 14px rgba(201,24,74,.18),
+    inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+.miniBtn:active{
+  transform: translateY(1px) scale(.98) !important;
+  box-shadow:
+    0 4px 8px rgba(201,24,74,.16),
+    inset 0 1px 0 rgba(255,255,255,.7) !important;
 }
 
 </style>
@@ -411,20 +449,17 @@ const DEFAULT_FIRST_STATION = "서울역";
     const splashRatio = 16/9; // height / width (스플래시 원본 비율)
     // 모바일에서는 빈공간 없게 '보이는 화면(visual viewport)'을 꽉 채우게 함
     let splashW, splashH;
+
+    // Mobile: fill the visible viewport (no blanks)
     if (vw <= 700){
       splashW = vw;
       splashH = vh;
     } else {
-      const maxSplashW = vw * 0.98;
-      const maxSplashH = vh * 0.98;
-
-      // 1) 세로를 최대치로 채우고, 가로를 비율로 계산
-      splashH = maxSplashH;
+      // Desktop/web: keep centered 'phone screen' frame
+      splashH = Math.min(vh, maxH);
       splashW = splashH / splashRatio;
-
-      // 2) 가로가 넘치면 가로 기준으로 재계산
-      if (splashW > maxSplashW){
-        splashW = maxSplashW;
+      if (splashW > maxW){
+        splashW = maxW;
         splashH = splashW * splashRatio;
       }
     }
@@ -842,11 +877,9 @@ const DEFAULT_FIRST_STATION = "서울역";
   const startInput=document.getElementById('startInput');
   const goBtn=document.getElementById('goBtn');
 
-  const savedStation = localStorage.getItem(LAST_STATION_KEY);
-  let currentStation = (savedStation && allStations.includes(savedStation))
-    ? savedStation
-    : (allStations.includes(DEFAULT_FIRST_STATION) ? DEFAULT_FIRST_STATION : (allStations[0] || DEFAULT_FIRST_STATION));
-  let currentLine = getLinesOf(currentStation)[0] || lineNames[0];
+  try{ localStorage.removeItem(LAST_STATION_KEY); }catch(e){}
+  let currentStation = (allStations.includes(DEFAULT_FIRST_STATION) ? DEFAULT_FIRST_STATION : (allStations[0] || DEFAULT_FIRST_STATION));
+let currentLine = getLinesOf(currentStation)[0] || lineNames[0];
   startInput.value=currentStation;
   setTokenAt(currentLine,currentStation,true);
   hudLine1.textContent=formatStation(currentStation);
@@ -991,6 +1024,19 @@ const DEFAULT_FIRST_STATION = "서울역";
   goBtn.addEventListener('click', onStart);
   goBtn.addEventListener('touchend', (e)=>{ e.preventDefault(); onStart(); }, {passive:false});
 })();
+
+// === VisualViewport height fix (prevents top blank on mobile Safari) ===
+(function setupVvh(){
+  const setVvh = () => {
+    const vv = window.visualViewport;
+    const h = vv ? vv.height : window.innerHeight;
+    document.documentElement.style.setProperty('--vvh', (h * 0.01) + 'px');
+  };
+  setVvh();
+  window.addEventListener('resize', setVvh);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', setVvh);
+})();
+
 </script>
 </body>
 </html>
