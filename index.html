@@ -1422,12 +1422,12 @@ let currentLine = getLinesOf(currentStation)[0] || lineNames[0];
   const sfxTransfer = document.getElementById('sfxTransfer');
   if(sfxTransfer){
     try{ sfxTransfer.src = TRANSFER_SFX_URL; sfxTransfer.load(); }catch(e){}
-    try{ sfxTransfer.volume = 0.01; }catch(e){}
+    try{ sfxTransfer.volume = 0.0025; }catch(e){}
     try{ sfxTransfer.muted = false; }catch(e){}
   }
   if(sfxTransfer){
     sfxTransfer.loop = false;
-    sfxTransfer.volume = 0.01;
+    sfxTransfer.volume = 0.0025;
     sfxTransfer.preload = 'auto';
   }
 
