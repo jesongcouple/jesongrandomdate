@@ -4207,7 +4207,7 @@ const memoryOverlay = document.getElementById("memoryOverlay");
       row.querySelector('[data-act="share"]').addEventListener("click", async ()=>{
         try{
           if(typeof html2canvas !== "function"){
-            alert("공유 기능 로딩중… 잠시 후 다시 시도해줘");
+            alert("공유 기능 로딩중… 잠시 후 다시 시도해주세요.");
             return;
           }
           const stage = document.getElementById("shareStage");
@@ -4297,7 +4297,7 @@ wrap.innerHTML = `
 
     if(!memoryOverlay) return;
     const iso = window.__lastResultAt;
-    if(!iso){ alert("먼저 랜덤 결과를 만들어줘."); return; }
+    if(!iso){ alert("먼저 랜덤 결과를 만들어주세요."); return; }
     const dt = new Date(iso);
     memoryWhen.textContent = isFinite(dt.getTime()) ? dt.toLocaleString() : iso;
     memoryPlaces.value = "";
@@ -4317,7 +4317,7 @@ wrap.innerHTML = `
     __editId = rec && rec.id ? String(rec.id) : null;
 
     const iso = rec && rec.resultAt ? String(rec.resultAt) : window.__lastResultAt;
-    if(!iso){ alert("기록 시간이 없어"); return; }
+    if(!iso){ alert("기록 시간이 없습니다."); return; }
     const dt = new Date(iso);
     try{ memoryWhen.textContent = isFinite(dt.getTime()) ? dt.toLocaleString() : iso; }catch(e){}
     try{ memoryPlaces.value = (rec && rec.places && rec.places.length) ? rec.places.join(", ") : ""; }catch(e){}
@@ -4413,7 +4413,7 @@ const list = memLoad();
       if(!pin) return;
       const pinStr = String(pin).trim();
       if(!/^[0-9]{6}$/.test(pinStr)){
-        alert("비밀번호는 6자리 숫자");
+        alert("비밀번호는 6자리 숫자입니다.");
         return;
       }
 
@@ -4424,7 +4424,7 @@ const list = memLoad();
         const list = memLoad();
         const uid = obj.uid || null;
         if(uid && list.some(x=>String(x.uid||"") === String(uid))){
-          alert("이미 가져온 추억이야");
+          alert("이미 가져온 추억입니다.");
           return;
         }
 
@@ -4849,7 +4849,7 @@ const list = memLoad();
     const plan = planOptimalTrip(currentStation);
     const path = (plan && plan.path) ? plan.path : [];
     if(!path.length || !path[0] || !path[0].st){
-      alert('경로를 찾지 못했어 ㅠㅠ (출발/도착 역을 다시 확인해줘)');
+      alert('경로를 찾지 못했습니다. (역을 다시 확인해주세요.)');
       animating=false; goBtn.disabled=false;
       return;
     }
