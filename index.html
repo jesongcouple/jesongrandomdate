@@ -3080,7 +3080,7 @@ const iv = setInterval(()=>{
   let volMovePct = 600;     // 0~1500
   let volTransferPct = 2500; // 0~5000
   let volArrivePct = 400; // 중앙값(기본) -20% 조정: 0~800 기준
-  let volUiPct = 2500; // 버튼 (중앙값) // 0~5000
+  let volUiPct = 5000; // 버튼 (중앙값) // 0~5000
 
   function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
@@ -3090,13 +3090,13 @@ const iv = setInterval(()=>{
       const m = parseInt(localStorage.getItem(VOL_MOVE_KEY) || "600", 10);
       const t = parseInt(localStorage.getItem(VOL_TRANSFER_KEY) || "2500", 10);
       const a = parseInt(localStorage.getItem(VOL_ARRIVE_KEY) || "400", 10);
-      const u = parseInt(localStorage.getItem(VOL_UI_KEY) || "2500", 10);
+      const u = parseInt(localStorage.getItem(VOL_UI_KEY) || "5000", 10);
       volMovePct = clamp(Number.isFinite(m)?m:600, 0, 1200);
       volTransferPct = clamp(Number.isFinite(t)?t:2500, 0, 5000);
       volArrivePct = clamp(Number.isFinite(a)?a:400, 0, 800);
-      volUiPct = clamp(Number.isFinite(u)?u:2500, 0, 5000);
+      volUiPct = clamp(Number.isFinite(u)?u:5000, 0, 10000);
       // Safety floor: prevent 'silent UI' due to corrupted/zero stored values
-      if(!isMuted && volUiPct < 80) volUiPct = 250;
+      if(!isMuted && volUiPct < 80) volUiPct = 500;
       if(!isMuted && volMovePct < 40) volMovePct = 200;
 
     }catch(e){}
