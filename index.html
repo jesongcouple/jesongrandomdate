@@ -3029,7 +3029,7 @@ const DEFAULT_FIRST_STATION = "서울역";
     if(loadingWrap) loadingWrap.classList.add('show');
 
     // Loading dots sound: play a "move" tick on each dot change, only during the 5000ms loading window
-const DOT_ANIM_MS = 2400;                 // must match CSS: animation:dots 1.40s ...
+const DOT_ANIM_MS = 1800;                 // must match CSS: animation:dots 1.40s ...
 const DOT_STEP_MS = Math.round(DOT_ANIM_MS / 4); // "", ".", "..", "..." (4 steps)
 const startedAt = Date.now();
 const iv = setInterval(()=>{
